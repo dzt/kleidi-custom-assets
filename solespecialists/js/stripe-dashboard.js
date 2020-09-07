@@ -1,5 +1,6 @@
 var stripe = Stripe(publishable_key);
 var elements = stripe.elements();
+var complete = false;
 
 var style = {
     base: {
@@ -21,19 +22,30 @@ var card = elements.create('card', {
 
 card.mount('#card-element');
 
+card.addEventListener('change', function (event) {
+    complete = event.complete;
+});
+
+var submitButton = document.getElementById('submit-button');
 var form = document.getElementById('payment-form');
-form.addEventListener('submit', (event) => {
+
+submitButton.addEventListener('click', () => {
     event.preventDefault();
-    stripe.createToken(card, {
-        name: document.getElementById('fullName').value
-    }).then((result) => {
-        if (result.error) {
-            var errorElement = document.getElementById('card-errors');
-            errorElement.textContent = result.error.message;
-        } else {
-            stripeTokenHandler(result.token);
+    if (complete) {
+        let tokenData = {
+            name: document.getElementById('fullName').value
         }
-    });
+        stripe.createToken(card, tokenData).then(function (result) {
+            if (result.error) {
+                var errorElement = document.getElementById('card-errors');
+                errorElement.textContent = result.error.message;
+            } else {
+                stripeTokenHandler(result.token);
+            }
+        });
+    } else {
+        form.submit();
+    }
 });
 
 function stripeTokenHandler(token) {
